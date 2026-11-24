@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reparar panel · Modo Anxo Carro</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0b0b0d;
+        color: #f5f5f5;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        padding: 24px;
+      }
+      main {
+        width: min(420px, 100%);
+        text-align: center;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 12px;
+      }
+      p {
+        color: #bdbdbd;
+        line-height: 1.5;
+        font-size: 15px;
+      }
+      code {
+        display: block;
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 10px;
+        background: #1a1a1e;
+        color: #ef4444;
+        font-size: 12px;
+        word-break: break-all;
+      }
+      button {
+        margin-top: 20px;
+        padding: 12px 18px;
+        border: 0;
+        border-radius: 10px;
+        background: #dc2626;
+        color: white;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .ok {
+        color: #86efac;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Reparando el panel…</h1>
+      <p id="msg">Borrando la URL de hoja guardada y comprobando la conexión.</p>
+      <code id="detail" hidden></code>
+      <button id="retry" hidden>Abrir panel igualmente</button>
+    </main>
+
+    <script>
+      var ENDPOINT = "https://script.google.com/macros/s/AKfycbyh-SIXzC1oXqVjxlAR45k73NJO3BjwO6Dwe8fXGX6JvQIUmhLRt1OKZKFkeuzhnpeT/exec";
+      var msg = document.getElementById("msg");
+      var detail = document.getElementById("detail");
+      var retry = document.getElementById("retry");
+
+      function openPanel() {
+        location.replace("https://pablobujan.github.io/?admin=1&v=" + Date.now());
+      }
+
+      retry.addEventListener("click", openPanel);
+
+      try {
+        localStorage.removeItem("anxo-carro:sheet-url");
+        localStorage.removeItem("anxo-carro:matches-v6");
+      } catch (e) {}
+
+      var finished = false;
+      var timer = setTimeout(function () {
+        if (finished) return;
+        finished = true;
+        msg.textContent = "La hoja no respondió desde este navegador.";
+        detail.textContent = "Revisa la conexión o bloqueo de scripts de Google. Pulsa «Abrir panel igualmente».";
+        detail.hidden = false;
+        retry.hidden = false;
+      }, 20000);
+
+      window.__anxoReset = function (data) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        if (data && data.ok && Array.isArray(data.partidos)) {
+          msg.innerHTML = '<span class="ok">Hoja conectada (' + data.partidos.length + ' partidos). Abriendo el panel…</span>';
+          setTimeout(openPanel, 700);
+        } else {
+          msg.textContent = "La hoja respondió, pero sin calendario.";
+          detail.textContent = JSON.stringify(data).slice(0, 300);
+          detail.hidden = false;
+          retry.hidden = false;
+        }
+      };
+
+      var s = document.createElement("script");
+      s.src = ENDPOINT + "?action=partidos&callback=__anxoReset";
+      s.onerror = function () {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        msg.textContent = "Este navegador bloqueó la lectura de la hoja.";
+        detail.textContent = "Prueba desde otro navegador o desactiva el bloqueo de scripts de Google.";
+        detail.hidden = false;
+        retry.hidden = false;
+      };
+      document.head.appendChild(s);
+    </script>
+  </body>
+</html>
